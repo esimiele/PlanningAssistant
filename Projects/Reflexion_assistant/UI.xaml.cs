@@ -26,9 +26,6 @@ using iTextSharp.text.pdf.parser;
 
 namespace Reflexion_assistant
 {
-    /// <summary>
-    /// Interaction logic for UI.xaml
-    /// </summary>
     public partial class UI : UserControl
     {
         Patient pat;
@@ -67,8 +64,8 @@ namespace Reflexion_assistant
             context = sc;
             pat = context.Patient;
             selectedSS = context.StructureSet;
+            //need to invert the safety zone as ant-post direction of the patient has changed sign
             if (selectedSS.Image.ImagingOrientation == PatientOrientation.HeadFirstProne || selectedSS.Image.ImagingOrientation == PatientOrientation.FeetFirstProne) { invert = -1.0; invertSafetyZone(); }
-            //pat.BeginModifications();
 
             //get body structure
             List<Structure> bodies = selectedSS.Structures.Where(x => x.Id.ToLower().Contains("body")).ToList();
@@ -129,7 +126,7 @@ namespace Reflexion_assistant
             if (approvedCount > 0)
             {
                 msg += Environment.NewLine + "I can't operate on approved structures!" + Environment.NewLine + "Continue ?!";
-                Reflexion_assistant.confirmUI CUI = new Reflexion_assistant.confirmUI();
+                confirmUI CUI = new confirmUI();
                 CUI.message.Text = msg;
                 CUI.confirmBtn.Text = "Yes";
                 CUI.cancelBtn.Text = "No";
@@ -266,33 +263,47 @@ namespace Reflexion_assistant
                     }
                     else theMarker = markers.First();
 
+                    //get couch and body points
                     Point3DCollection couchPts = couch.MeshGeometry.Positions;
                     Point3DCollection bodyPts = body.MeshGeometry.Positions;
+                    //get lateral offset in position direction between body and couch
                     double positiveOffset = bodyPts.Max(p => p.X) - couchPts.Max(p => p.X);
+                    //get lateral offset in negative direction between body and couch
                     double negativeOffset = bodyPts.Min(p => p.X) - couchPts.Min(p => p.X);
+
+                    //these offsets are used to shift the lateral positions of the safety zone to account for the situation where the patient extends laterally off the couch
                     if (positiveOffset < 0) positiveOffset = 0;
                     if (negativeOffset > 0) negativeOffset = 0;
                     //MessageBox.Show(String.Format("{0}, {1}", positiveOffset, negativeOffset));
                     if (positiveOffset > 0 || negativeOffset < 0) updateSafetyZone(positiveOffset, negativeOffset);
+                    //find the couch surface (accounting for patient orientation)
                     double couchYMin = 0.0;
                     if (selectedSS.Image.ImagingOrientation == PatientOrientation.HeadFirstProne || selectedSS.Image.ImagingOrientation == PatientOrientation.FeetFirstProne) couchYMin = couchPts.Max(p => p.Y);
                     else { couchYMin = couchPts.Min(p => p.Y);}
+                    //get couch lateral
                     double couchLat = (couchPts.Max(p => p.X) + couchPts.Min(p => p.X)) / 2;
+                    //find the proposed isocenter location based on the placement of the marker structure in the plan
                     double xIso = theMarker.CenterPoint.x - couchLat;
                     double yIso = couchYMin - theMarker.CenterPoint.y;
+
+                    //iterate through the safety zone points and find the nearest neighboring points to the proposed isocenter position
                     double x1 = 0.0, y1 = 0.0;
                     double x2 = 0.0, y2 = 0.0;
                     if (yIso*invert >= 0.0 && xIso > safetyZone.ElementAt(0).Item1 && xIso < safetyZone.Last().Item1)
                     {
                         for (int i = 0; i < safetyZone.Count(); i++)
                         {
+                            //lateral position of safety zone is the same as the proposed iso, but the height of the safety zone is below the proposed iso indicating the proposed iso is OUTSIDE the safety zone
                             if (safetyZone.ElementAt(i).Item1 == xIso && safetyZone.ElementAt(i).Item2 <= yIso*invert)
                             {
                                 collisionLikely = true;
                                 break;
                             }
+                            //found nearest x points
                             else if (safetyZone.ElementAt(i).Item1 > xIso)
                             {
+                                //perform linear interpolation to determine the height of the safety zone at the lateral position of the proposed isocenter. If the proposed height of the isocenter is greater than the height of 
+                                //the safety zone, this indicates the proposed isocenter is OUTSIDE the safety zone --> collision likely
                                 x1 = safetyZone.ElementAt(i - 1).Item1;
                                 y1 = safetyZone.ElementAt(i - 1).Item2;
                                 x2 = safetyZone.ElementAt(i).Item1;
@@ -306,6 +317,7 @@ namespace Reflexion_assistant
 
                     if (collisionLikely)
                     {
+                        //to help the user visualize the issue if it was determined that a collision would be likely, plot the safety zone for 10 slices of the CT centered around the z location of the proposed isocenter point
                         MessageBox.Show("WARNING! COLLISION LIKELY BASED ON ISOCENTER PLACEMENT! I'm adding a structure ('Safety Zone') to indicate where the isocenter can be placed safely.");
                         Structure tmp = selectedSS.AddStructure("CONTROL", "Safety Zone");
                         //(-95, 0),
@@ -328,10 +340,9 @@ namespace Reflexion_assistant
                         VVector[] pts = new VVector[safetyZone.Count()];
                         for (int i = 0; i < safetyZone.Count(); i++) pts[i] = new VVector(couchLat + safetyZone.ElementAt(i).Item1, couchYMin - safetyZone.ElementAt(i).Item2, 0);
                         int startSlice = (int)((theMarker.CenterPoint.z - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes) - 5;
-                        for (int i = startSlice; i < startSlice + 10; i++) tmp.AddContourOnImagePlane(pts, i);
+                        for (int i = startSlice; i < startSlice + 5; i++) tmp.AddContourOnImagePlane(pts, i);
                     }
                     else { if (RTS_TB.Text == "YES" && couchTB.Text == "YES") MessageBox.Show("BE SURE TO APPROVE THE STRUCTURE SET BEFORE EXPORTING!!!"); }
-
                     isoTB.Background = Brushes.ForestGreen;
                     isoTB.Text = "YES";
                 }
@@ -392,23 +403,6 @@ namespace Reflexion_assistant
             //MessageBox.Show("PDF text copied to clipboard");
         }
 
-        private string getPDFText()
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.InitialDirectory = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Reflexion\";
-            openFileDialog.Filter = "pdf files (*.pdf)|*.pdf|All files (*.*)|*.*";
-
-            if (openFileDialog.ShowDialog().Value)
-            {
-                StringBuilder text = new StringBuilder();
-                PdfReader reader = new PdfReader(openFileDialog.FileName);
-                //for (int i = 1; i <= reader.NumberOfPages; i++) text.Append(PdfTextExtractor.GetTextFromPage(reader, i));
-                text.Append(PdfTextExtractor.GetTextFromPage(reader, 1));
-                return text.ToString();
-            }
-            else return "";
-        }
-
         private void updateSafetyZone(double positiveOffset, double negativeOffset)
         {
             List<Tuple<double, double>> tmp = new List<Tuple<double, double>> { };
@@ -420,14 +414,11 @@ namespace Reflexion_assistant
             }
             safetyZone.Clear();
             safetyZone = tmp;
-
-            //string msg = "";
-            //foreach (Tuple<double, double> tt in safetyZone) msg += String.Format("{0}, {1}", tt.Item1, tt.Item2) + System.Environment.NewLine;
-            //MessageBox.Show(msg);
         }
 
         private void invertSafetyZone()
         {
+            //flip the sign of the y-values of the safety zone
             List<Tuple<double, double>> tmp = new List<Tuple<double, double>> { };
             for (int i = 0; i < safetyZone.Count(); i++) tmp.Add(new Tuple<double, double>(safetyZone.ElementAt(i).Item1, invert*safetyZone.ElementAt(i).Item2));
             safetyZone.Clear();
@@ -539,13 +530,13 @@ namespace Reflexion_assistant
 
         private bool isPlanCalculated()
         {
-            foreach (Course c in pat.Courses) if (c.ExternalPlanSetups.Where(x => x.StructureSet == selectedSS && (x.IsDoseValid || x.ApprovalStatus == PlanSetupApprovalStatus.PlanningApproved || x.ApprovalStatus == PlanSetupApprovalStatus.TreatmentApproved)).Any()) return false;
-            return true;
+            foreach (Course c in pat.Courses) if (c.ExternalPlanSetups.Where(x => x.StructureSet == selectedSS && (x.IsDoseValid || x.ApprovalStatus == PlanSetupApprovalStatus.PlanningApproved || x.ApprovalStatus == PlanSetupApprovalStatus.TreatmentApproved)).Any()) return true;
+            return false;
         }
 
         private bool insertReflexionCouch(Structure dummy)
         {
-            if (!isPlanCalculated())
+            if (isPlanCalculated())
             {
                 MessageBox.Show("Error! Couch structure(s) is used in a plan that has dose calculated or a plan that is approved! Fix this issue and try again!");
                 return true;
@@ -567,16 +558,6 @@ namespace Reflexion_assistant
             double couchHeight = 110.0;
 
             //box with contour points located at (x,y), (x,0), (x,-y), (0,-y), (-x,-y), (-x,0), (-x, y), (0,y)
-            // (x,y) = (couchLat + 250.0, couchYMin + couchHeight)
-            //VVector[] pts = new[] {
-            //                        new VVector(couchLat + 250.0, couchYMin + couchHeight, 0),
-            //                        new VVector(couchLat + 250.0, 0, 0),
-            //                        new VVector(couchLat + 250.0, couchYMin, 0),
-            //                        new VVector(0, couchYMin, 0),
-            //                        new VVector(couchLat - 250.0, couchYMin, 0),
-            //                        new VVector(couchLat - 250.0, 0, 0),
-            //                        new VVector(couchLat - 250.0, couchYMin + couchHeight, 0),
-            //                        new VVector(0, couchYMin + couchHeight, 0)};
             VVector[] pts = new[] {
                                     new VVector(couchLat + 264.0, couchYMin + invert*couchHeight, 0),
                                     new VVector(couchLat + 264.5, couchYMin + invert*couchHeight, 0),
@@ -615,12 +596,12 @@ namespace Reflexion_assistant
                 selectedSS.RemoveStructure(tmp);
             }
             couch = ReflexionCouch;
-
             return false;
         }
 
         private void exportData_Click(object sender, RoutedEventArgs e)
         {
+            //simple check to ensure structure set is approved before exporting to X1, otherwise the X1 will not permit optimization/import of unapproved structures
             //is structure set approved?
             bool notApproved = false;
             string msg = "Error! The following structures are not approved:" + Environment.NewLine;
@@ -639,6 +620,8 @@ namespace Reflexion_assistant
                 return;
             }
 
+            //To be added soon... Export of the CT and structure set objects from the database via Evil DICOM
+            //
             //selectDataToSend SDTS = new selectDataToSend(pat.StructureSets.ToList(), context.StructureSet);
             //SDTS.ShowDialog();
             //if (!SDTS.confirm) return;
