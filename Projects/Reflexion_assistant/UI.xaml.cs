@@ -67,7 +67,7 @@ namespace Reflexion_assistant
             //need to invert the safety zone as ant-post direction of the patient has changed sign
             if (selectedSS.Image.ImagingOrientation == PatientOrientation.HeadFirstProne || selectedSS.Image.ImagingOrientation == PatientOrientation.FeetFirstProne) { invert = -1.0; invertSafetyZone(); }
 
-            //get body structure
+            //get body structure (logic to account for the situation where there might be multiple structures with 'body' in the Id)
             List<Structure> bodies = selectedSS.Structures.Where(x => x.Id.ToLower().Contains("body")).ToList();
             if (!bodies.Any()) MessageBox.Show("Warning! No structure found with the string 'body'! It is unclear which structure is the body! You will NOT be able to check the structure set or get dose profiles!");
             else if (bodies.Count() > 1)
@@ -959,7 +959,6 @@ namespace Reflexion_assistant
             separateWTData_TB.Text = "YES";
         }
 
-        //soon...
         private void importDose_Click(object sender, RoutedEventArgs e)
         {
             string reflexionFileName = "";
@@ -1101,70 +1100,6 @@ namespace Reflexion_assistant
             System.Windows.Clipboard.SetText(shifts);
             getShiftsTB.Background = System.Windows.Media.Brushes.ForestGreen;
             getShiftsTB.Text = "YES";
-        }
-
-        //interplay research shiz
-        private void getContours_click(object sender, RoutedEventArgs e)
-        {
-            //MessageBox.Show(String.Format("x = {0}, y = {1}, z = {2}", selectedSS.Image.UserOrigin.x, selectedSS.Image.UserOrigin.y, selectedSS.Image.UserOrigin.z));
-            //MessageBox.Show(String.Format("x = {0}, y = {1}, z = {2}", (61.5890 - selectedSS.Image.UserOrigin.x)/10, (-152.2084 - selectedSS.Image.UserOrigin.y)/10, (-509.9023 - selectedSS.Image.UserOrigin.z)/10));
-            //return;
-            string fileName = "";
-            SaveFileDialog saveFileDialog1 = new SaveFileDialog
-            {
-                InitialDirectory = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\RefleXion",
-                Title = "Choose text file output",
-                CheckPathExists = true,
-
-                DefaultExt = "txt",
-                Filter = "txt files (*.txt)|*.txt",
-                FilterIndex = 2,
-                RestoreDirectory = true,
-            };
-            if (saveFileDialog1.ShowDialog() == saveFileDialog1.CheckPathExists) fileName = saveFileDialog1.FileName;
-            else
-            {
-                MessageBox.Show("Failed to find file");
-                return;
-            }
-
-            double xVoxelHalfWidth = selectedSS.Image.XRes / 2;
-            double xCenter = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("film")).CenterPoint.x;
-            double lowerLim = xCenter - 2.0*xVoxelHalfWidth;
-            double upperLim = xCenter + 2.0*xVoxelHalfWidth;
-            //double tolerance = 0.5;
-            //double lowerLim = xCenter - tolerance;
-            //double upperLim = xCenter + tolerance;
-            //MessageBox.Show(String.Format("x center: {0:0.0} mm \nlowerLim: {1:0.0} mm, upperLim: {2:0.0} mm", xCenter, lowerLim, upperLim));
-            List<Structure> targets = selectedSS.Structures.Where(x => x.Id.ToLower() == "ptv_80-10" || x.Id.ToLower() == "itv_80-10").ToList();
-
-            string info = String.Format("Beam isocenter position:") + Environment.NewLine;
-            info += String.Format("{0}", context.PlanSetup.Beams.First().IsocenterPosition.x) + Environment.NewLine;
-            info += String.Format("{0}", context.PlanSetup.Beams.First().IsocenterPosition.y) + Environment.NewLine;
-            info += String.Format("{0}", context.PlanSetup.Beams.First().IsocenterPosition.z) + Environment.NewLine;
-            info += Environment.NewLine;
-            File.AppendAllText(fileName, info);
-
-            foreach (Structure s in targets)
-            {
-                //double center = (s.MeshGeometry.Positions.Max(p => p.X) - Math.Abs(s.MeshGeometry.Positions.Min(p => p.X)))/2;
-                info = String.Format("Structure: {0}", s.Id) + Environment.NewLine;
-                info += String.Format("DCM x, z, y") + Environment.NewLine;
-                MeshGeometry3D mesh = s.MeshGeometry;
-                //get the start and stop image planes for this structure
-                int startSlice = (int)((mesh.Bounds.Z - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes);
-                int stopSlice = (int)(((mesh.Bounds.Z + mesh.Bounds.SizeZ) - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes) + 1;
-                for (int slice = startSlice; slice < stopSlice; slice++)
-                {
-                    VVector[][] points = s.GetContoursOnImagePlane(slice);
-                    for (int i = 0; i < points.GetLength(0); i++) for (int j = 0; j < points[i].GetLength(0); j++) if (lowerLim <= points[i][j].x && points[i][j].x <= upperLim) info += String.Format("{0}, {1}, {2}", points[i][j].x, points[i][j].y, points[i][j].z) + Environment.NewLine;
-                }
-                info += Environment.NewLine;
-                
-                File.AppendAllText(fileName, info);
-            }
-            getContoursTB.Background = System.Windows.Media.Brushes.ForestGreen;
-            getContoursTB.Text = "YES";
         }
     }
 }

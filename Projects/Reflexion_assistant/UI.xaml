@@ -35,6 +35,48 @@
                 </Border>
             </Grid>
             <TabControl Background="DarkGray" HorizontalAlignment="Left" Height="358" Margin="0" VerticalAlignment="Bottom" Width="500" TabStripPlacement="Left">
+                <TabItem Header="Commissioning">
+                    <TabControl Background="DarkGray">
+                        <TabItem Header="Water tank data prep" Width="194">
+                            <Border BorderBrush="Black" BorderThickness="1,0,0,0">
+                                <Grid Width="370">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="185"/>
+                                        <ColumnDefinition Width="185"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <Label Content="Item" HorizontalAlignment="Center" FontWeight="Bold" FontSize="14" Margin="5"></Label>
+                                        <Button Content="Separate WT Data" Width="110" HorizontalAlignment="Center" Margin="10" Click="separateWTData_Click"></Button>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <Label Content="Completed?" HorizontalAlignment="Center" FontWeight="Bold" FontSize="14" Margin="5"></Label>
+                                        <TextBox Height="20" Width="80" TextWrapping="Wrap" Text="No" HorizontalAlignment="Center" Margin="10" x:Name="separateWTData_TB" Background="Red" FontWeight="Bold" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </TabItem>
+                        <TabItem Header="Static beam analysis" Width="194">
+                            <Border BorderBrush="Black" BorderThickness="1,1,0,0">
+                                <Grid Width="370">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="185"/>
+                                        <ColumnDefinition Width="185"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <Label Content="Item" HorizontalAlignment="Center" FontWeight="Bold" FontSize="14" Margin="5"></Label>
+                                        <Button Content="Get dose profiles" Width="100" HorizontalAlignment="Center" Margin="10" Click="getDoseProfiles_Click"></Button>
+                                        <Button Content="Get output factors" Width="110" HorizontalAlignment="Center" Margin="10" Click="outputFactorBtn_Click"></Button>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <Label Content="Completed?" HorizontalAlignment="Center" FontWeight="Bold" FontSize="14" Margin="5"></Label>
+                                        <TextBox Height="20" Width="80" TextWrapping="Wrap" Text="No" HorizontalAlignment="Center" Margin="10" x:Name="doseProfilesTB" Background="Red" FontWeight="Bold" TextAlignment="Center"/>
+                                        <TextBox Height="20" Width="80" TextWrapping="Wrap" Text="No" HorizontalAlignment="Center" Margin="10" x:Name="OF_TB" Background="Red" FontWeight="Bold" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </TabItem>
+                    </TabControl>
+                </TabItem>
                 <TabItem Header="Plan Preparation">
                     <Border BorderBrush="Black" BorderThickness="1,0,0,0">
                         <Grid Width="370">
@@ -59,44 +101,6 @@
                         </Grid>
                     </Border>
                 </TabItem>
-                <TabItem Header="Static beam analysis">
-                    <Border BorderBrush="Black" BorderThickness="1,0,0,0">
-                        <Grid Width="370">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="185"/>
-                                <ColumnDefinition Width="185"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <Label Content="Item" HorizontalAlignment="Center" FontWeight="Bold" FontSize="14" Margin="5"></Label>
-                                <Button Content="Get dose profiles" Width="100" HorizontalAlignment="Center" Margin="10" Click="getDoseProfiles_Click"></Button>
-                                <Button Content="Get output factors" Width="110" HorizontalAlignment="Center" Margin="10" Click="outputFactorBtn_Click"></Button>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1">
-                                <Label Content="Completed?" HorizontalAlignment="Center" FontWeight="Bold" FontSize="14" Margin="5"></Label>
-                                <TextBox Height="20" Width="80" TextWrapping="Wrap" Text="No" HorizontalAlignment="Center" Margin="10" x:Name="doseProfilesTB" Background="Red" FontWeight="Bold" TextAlignment="Center"/>
-                                <TextBox Height="20" Width="80" TextWrapping="Wrap" Text="No" HorizontalAlignment="Center" Margin="10" x:Name="OF_TB" Background="Red" FontWeight="Bold" TextAlignment="Center"/>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                </TabItem>
-                <TabItem Header="Water tank data prep">
-                    <Border BorderBrush="Black" BorderThickness="1,0,0,0">
-                        <Grid Width="370">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="185"/>
-                                <ColumnDefinition Width="185"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <Label Content="Item" HorizontalAlignment="Center" FontWeight="Bold" FontSize="14" Margin="5"></Label>
-                                <Button Content="Separate WT Data" Width="110" HorizontalAlignment="Center" Margin="10" Click="separateWTData_Click"></Button>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1">
-                                <Label Content="Completed?" HorizontalAlignment="Center" FontWeight="Bold" FontSize="14" Margin="5"></Label>
-                                <TextBox Height="20" Width="80" TextWrapping="Wrap" Text="No" HorizontalAlignment="Center" Margin="10" x:Name="separateWTData_TB" Background="Red" FontWeight="Bold" TextAlignment="Center"/>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                </TabItem>
                 <TabItem Header="Dose import">
                     <Border BorderBrush="Black" BorderThickness="1,0,0,0">
                         <Grid Width="370">
@@ -115,7 +119,7 @@
                         </Grid>
                     </Border>
                 </TabItem>
-                <TabItem Header="IDE study">
+                <TabItem Header="Isocenter shifts">
                     <Border BorderBrush="Black" BorderThickness="1,0,0,0">
                         <Grid Width="370">
                             <Grid.ColumnDefinitions>
@@ -129,24 +133,6 @@
                             <StackPanel Grid.Column="1">
                                 <Label Content="Completed?" HorizontalAlignment="Center" FontWeight="Bold" FontSize="14" Margin="5"></Label>
                                 <TextBox Height="20" Width="80" TextWrapping="Wrap" Text="No" HorizontalAlignment="Center" Margin="10" x:Name="getShiftsTB" Background="Red" FontWeight="Bold" TextAlignment="Center"/>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                </TabItem>
-                <TabItem Header="Get Contours">
-                    <Border BorderBrush="Black" BorderThickness="1,0,0,0">
-                        <Grid Width="370">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="185"/>
-                                <ColumnDefinition Width="185"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <Label Content="Item" HorizontalAlignment="Center" FontWeight="Bold" FontSize="14" Margin="5"></Label>
-                                <Button Content="Get contours on image plane" Width="165" HorizontalAlignment="Center" Margin="10" Click="getContours_click"></Button>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1">
-                                <Label Content="Completed?" HorizontalAlignment="Center" FontWeight="Bold" FontSize="14" Margin="5"></Label>
-                                <TextBox Height="20" Width="80" TextWrapping="Wrap" Text="No" HorizontalAlignment="Center" Margin="10" x:Name="getContoursTB" Background="Red" FontWeight="Bold" TextAlignment="Center"/>
                             </StackPanel>
                         </Grid>
                     </Border>
